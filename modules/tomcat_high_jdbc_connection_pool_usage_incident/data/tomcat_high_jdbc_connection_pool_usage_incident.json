@@ -1,0 +1,158 @@
+{
+  "name": "tomcat_high_jdbc_connection_pool_usage_incident",
+  "description": "This incident type refers to a situation where the Tomcat server's JDBC connection pool usage surpasses its configured limits. This can lead to a shortage of available connections for incoming requests, resulting in slow response times or even server crashes. It is important to monitor and manage the JDBC connection pool usage to prevent such incidents from occurring.",
+  "params": [
+    {
+      "name": "TOMCAT_PORT",
+      "value": ""
+    },
+    {
+      "name": "TOMCAT",
+      "value": ""
+    },
+    {
+      "name": "CONNECTION_POOL_CLASS",
+      "value": ""
+    },
+    {
+      "name": "DATABASE_PORT",
+      "value": ""
+    },
+    {
+      "name": "POOL_SIZE",
+      "value": ""
+    },
+    {
+      "name": "THREAD_CLASS",
+      "value": ""
+    },
+    {
+      "name": "HOST_NAME",
+      "value": ""
+    },
+    {
+      "name": "K8S_CLUSTER_NAME",
+      "value": ""
+    },
+    {
+      "name": "NAMESPACE",
+      "value": ""
+    }
+  ],
+  "cells": [
+    {
+      "name": "cell_1",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Tomcat High JDBC Connection Pool Usage Incident.\nThis incident type refers to a situation where the Tomcat server's JDBC connection pool usage surpasses its configured limits. This can lead to a shortage of available connections for incoming requests, resulting in slow response times or even server crashes. It is important to monitor and manage the JDBC connection pool usage to prevent such incidents from occurring."
+    },
+    {
+      "name": "cell_2",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Get the PID of the Tomcat process"
+    },
+    {
+      "name": "cell_3",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `PID=$(pgrep -f ${TOMCAT})`"
+    },
+    {
+      "name": "cell_4",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the JDBC connection pool usage"
+    },
+    {
+      "name": "cell_5",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `jmap -histo:live $PID | grep ${CONNECTION_POOL_CLASS}`"
+    },
+    {
+      "name": "cell_6",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the database connections in use"
+    },
+    {
+      "name": "cell_7",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `lsof -n -i -P | grep ${DATABASE_PORT}`"
+    },
+    {
+      "name": "cell_8",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the number of threads in use"
+    },
+    {
+      "name": "cell_9",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `jstack $PID | grep -c ${THREAD_CLASS}`"
+    },
+    {
+      "name": "cell_10",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the Tomcat logs for errors"
+    },
+    {
+      "name": "cell_11",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `sudo tail -n 100 /var/log/tomcat//catalina.out | grep -i \"error\"`"
+    },
+    {
+      "name": "cell_12",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the CPU and memory usage of the Tomcat process"
+    },
+    {
+      "name": "cell_13",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `top -p $PID`"
+    },
+    {
+      "name": "cell_14",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the network connections in use"
+    },
+    {
+      "name": "cell_15",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `netstat -anp | grep ${TOMCAT_PORT}`"
+    },
+    {
+      "name": "cell_16",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Check the system logs for errors"
+    },
+    {
+      "name": "cell_17",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "(host | host_name=$HOST_NAME) union (pod | k8s_cluster_name=$K8S_CLUSTER_NAME | namespace=$NAMESPACE) | `sudo tail -n 100 /var/log/messages | grep -i \"error\"`"
+    },
+    {
+      "name": "cell_18",
+      "type": "MARKDOWN",
+      "enabled": true,
+      "content": "## Increase the maximum size of the connection pool to allow for more simultaneous connections."
+    },
+    {
+      "name": "cell_19",
+      "type": "OP_LANG",
+      "enabled": true,
+      "content": "host | host_name=$HOST_NAME | invoke_update_tomcat_pool_size($POOL_SIZE)"
+    }
+  ]
+}
